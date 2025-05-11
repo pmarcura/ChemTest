@@ -1,7 +1,7 @@
 import { ArticleCard } from '@/components/article-card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
-import { ArticleWithAuthor } from '@/lib/supabase';
+import { ArticleWithAuthor, Tag } from '@/lib/supabase';
 import { BeakerIcon } from 'lucide-react';
 import Link from 'next/link';
 
@@ -32,12 +32,43 @@ async function getPublishedArticles() {
 }
 
 /**
+ * Função para buscar as tags associadas a um artigo específico
+ * @param articleId ID do artigo
+ * @returns Array de tags associadas ao artigo
+ */
+async function getArticleTags(articleId: string) {
+  // Consulta ao Supabase para buscar as tags do artigo
+  const { data, error } = await supabase
+    .from('article_tags')
+    .select(`
+      tag_id,
+      tags(*)
+    `)
+    .eq('article_id', articleId);
+
+  if (error) {
+    console.error('Erro ao buscar tags do artigo:', error);
+    return [];
+  }
+
+  return data.map(item => item.tags) as Tag[];
+}
+
+/**
  * Componente da página inicial
  * Exibe uma seção de boas-vindas e os artigos publicados mais recentes
  */
 export default async function Home() {
   // Busca artigos publicados do banco de dados
   const articles = await getPublishedArticles();
+  
+  // Busca as tags para cada artigo
+  const articlesWithTags = await Promise.all(
+    articles.map(async (article) => {
+      const tags = await getArticleTags(article.id);
+      return { article, tags };
+    })
+  );
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -64,7 +95,7 @@ export default async function Home() {
       {/* Seção de artigos recentes */}
       <section>
         <h2 className="text-3xl font-bold mb-8 text-center">Artigos Recentes</h2>
-        {articles.length === 0 ? (
+        {articlesWithTags.length === 0 ? (
           // Exibe mensagem quando não há artigos
           <div className="text-center py-12">
             <p className="text-muted-foreground">Nenhum artigo publicado ainda.</p>
@@ -72,8 +103,8 @@ export default async function Home() {
         ) : (
           // Exibe grid de artigos quando há conteúdo
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
+            {articlesWithTags.map(({ article, tags }) => (
+              <ArticleCard key={article.id} article={article} tags={tags} />
             ))}
           </div>
         )}

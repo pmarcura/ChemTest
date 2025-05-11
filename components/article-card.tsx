@@ -3,43 +3,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ArticleWithAuthor, Tag } from "@/lib/supabase";
-import { supabase } from "@/lib/supabase";
 
 interface ArticleCardProps {
   article: ArticleWithAuthor;
-}
-
-/**
- * Função para buscar as tags associadas a um artigo específico
- * @param articleId ID do artigo
- * @returns Array de tags associadas ao artigo
- */
-async function getArticleTags(articleId: string) {
-  // Consulta ao Supabase para buscar as tags do artigo
-  const { data, error } = await supabase
-    .from('article_tags')
-    .select(`
-      tag_id,
-      tags(*)
-    `)
-    .eq('article_id', articleId);
-
-  if (error) {
-    console.error('Erro ao buscar tags do artigo:', error);
-    return [];
-  }
-
-  return data.map(item => item.tags) as Tag[];
+  tags: Tag[];
 }
 
 /**
  * Componente de card para exibir um artigo na lista
  * Exibe título, resumo do conteúdo, tags e informações do autor
  */
-export async function ArticleCard({ article }: ArticleCardProps) {
-  // Busca as tags do artigo
-  const tags = await getArticleTags(article.id);
-  
+export function ArticleCard({ article, tags }: ArticleCardProps) {
   return (
     <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
       <CardHeader>
